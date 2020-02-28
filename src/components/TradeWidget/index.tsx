@@ -491,6 +491,30 @@ const TradeWidget: React.FC = () => {
       const currentBatch = dateToBatchId(new Date())
       const validFromBatchId = currentBatch + validFrom
       const validUntilBatchId = currentBatch + validUntil
+
+      // TODO: Refactor with telegram bot, move to dex-js
+      let priceNumerator: BN
+      let priceDenominator: BN
+      const buyTokenDecimals = buyToken.decimals
+      const sellTokenDecimals = sellToken.decimals
+
+      if (buyTokenDecimals >= sellTokenDecimals) {
+        const precisionFactor = new BN(10).pow(new BN(buyTokenDecimals - sellTokenDecimals))
+        priceNumerator = sellAmount.mul(precisionFactor)
+        priceDenominator = buyAmount
+      } else {
+        const precisionFactor = new BN(10).pow(new BN(sellTokenDecimals - buyTokenDecimals))
+        priceNumerator = sellAmount
+        priceDenominator = buyAmount.mul(precisionFactor)
+      }
+
+      console.log('Penfing order price', {
+        priceNumerator: priceNumerator.toString(10),
+        priceDenominator: priceDenominator.toString(10),
+        sellAmount: sellAmount.toString(10),
+        buyAmount: buyAmount.toString(10),
+      })
+
       let success: boolean
       // ASAP ORDER
       if (validFrom === 0) {
@@ -509,8 +533,8 @@ const TradeWidget: React.FC = () => {
               return savePendingTransactions(txHash, {
                 buyTokenId: buyToken.id,
                 sellTokenId: sellToken.id,
-                priceNumerator: sellAmount,
-                priceDenominator: buyAmount,
+                priceNumerator,
+                priceDenominator,
                 networkId,
                 userAddress,
                 sellToken,
@@ -541,8 +565,8 @@ const TradeWidget: React.FC = () => {
               return savePendingTransactions(txHash, {
                 buyTokenId: buyToken.id,
                 sellTokenId: sellToken.id,
-                priceNumerator: sellAmount,
-                priceDenominator: buyAmount,
+                priceNumerator,
+                priceDenominator,
                 networkId,
                 userAddress,
                 validFrom: validFromBatchId,
